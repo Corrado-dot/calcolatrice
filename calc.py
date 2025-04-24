@@ -1,5 +1,5 @@
-st.set_page_config(page_title="Calcolatrice", layout="centered")
 import streamlit as st
+st.set_page_config(page_title="Calcolatrice", layout="centered")
 import math
 
 st.set_page_config(page_title="Calcolatrice", layout="centered")
