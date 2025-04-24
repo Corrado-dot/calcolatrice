@@ -4,48 +4,59 @@ import math
 st.set_page_config(page_title="Calcolatrice", layout="centered")
 st.title("🧮 Calcolatrice Avanzata")
 
-# Inizializzazione stati
-for k in ["cronologia", "valori_delta", "valori_molt", "valori_p", "sconti"]:
-    if k not in st.session_state:
-        st.session_state[k] = []
+# Stati iniziali
+if "input" not in st.session_state:
+    st.session_state.input = ""
+if "cronologia" not in st.session_state:
+    st.session_state.cronologia = []
+if "valori_delta" not in st.session_state:
+    st.session_state.valori_delta = []
+if "valori_molt" not in st.session_state:
+    st.session_state.valori_molt = []
+if "valori_p" not in st.session_state:
+    st.session_state.valori_p = []
+if "sconti" not in st.session_state:
+    st.session_state.sconti = []
+def rimuovi_percentuale(val):
+    if isinstance(val, str) and "%" in val:
+        return float(val.replace("%", "")) / 100
+    return float(val)
 
-def rimuovi_percentuale(v):
-    if isinstance(v, str) and "%" in v:
-        return float(v.replace("%", "")) / 100
-    return float(v)
-
-def eval_expr(expr):
+def safe_eval(expr):
     try:
-        return eval(expr)
+        return str(eval(expr))
     except:
         return "Errore"
 
-def esegui_delta():
-    v = st.session_state.valori_delta
+def calcolo_delta():
     try:
-        return f"{((v[1] - v[0]) / v[0] * 100):.3f}%"
-    except:
-        return "Errore"
-
-def esegui_molt():
-    v = st.session_state.valori_molt
-    try:
-        return f"{((v[1] * 2) / v[0]):.2f}"
-    except:
-        return "Errore"
-
-def esegui_p():
-    v = st.session_state.valori_p
-    try:
-        r = v[0] - ((100 - v[0]) / (100 / v[1]))
+        a, b = st.session_state.valori_delta
+        r = (b - a) / a * 100
         return f"{r:.3f}%"
     except:
         return "Errore"
 
-def sconto_inverso(v):
+def calcolo_molt():
     try:
-        v = float(v)
-        return f"{round(100 * (1 - 1 / (1 - (v / 100))), 3)}"
+        a, b = st.session_state.valori_molt
+        r = (b * 2) / a
+        return f"{r:.2f}"
+    except:
+        return "Errore"
+
+def calcolo_p():
+    try:
+        a, b = st.session_state.valori_p
+        r = a - ((100 - a) / (100 / b))
+        return f"{r:.3f}%"
+    except:
+        return "Errore"
+
+def sconto_inverso(val):
+    try:
+        val = float(val)
+        r = 100 * (1 - 1 / (1 - (val / 100)))
+        return f"{r:.3f}"
     except:
         return "Errore"
 
@@ -54,69 +65,105 @@ def somma_sconti(s1, s2):
         return f"{(((s1/100)+(s2/100))-(s1/100*s2/100))*100:.3f}%"
     except:
         return "Errore"
+def crea_pulsanti():
+    layout = [
+        ["1/s", "S", "P", "M"],
+        ["📋", "📥", "Δ", "C"],
+        ["%", "x²", "√", "/"],
+        ["7", "8", "9", "*"],
+        ["4", "5", "6", "-"],
+        ["1", "2", "3", "+"],
+        ["+/-", "0", ".", "="]
+    ]
 
-# Input principale
-expr = st.text_input("Inserisci numero o espressione:", "")
+    for riga in layout:
+        cols = st.columns(len(riga))
+        for i, tasto in enumerate(riga):
+            with cols[i]:
+                if tasto == "=":
+                    if st.button(tasto):
+                        if st.session_state.input:
+                            st.session_state.cronologia.append(st.session_state.input)
+                            st.session_state.input = safe_eval(st.session_state.input)
+                            st.session_state.input = st.session_state.input
+                else:
+                    if st.button(tasto):
+                        if tasto == "C":
+                            st.session_state.input = ""
+                        elif tasto == "📋":
+                            st.session_state.input = st.session_state.input.replace(",", ".")
+                            st.session_state.input = st.session_state.input.replace(".", ",")
+                            st.session_state.input = st.session_state.input
+                            st.session_state.input
+                        elif tasto == "📥":
+                            st.session_state.input = st.session_state.input
+                        elif tasto == "S":
+                            st.session_state.sconti.append(float(st.session_state.input))
+                            st.session_state.input = somma_sconti(st.session_state.sconti[0],st.session_state.sconti[1])
+                        elif tasto == "1/s":
+                            st.session_state.input = sconto_inverso(st.session_state.input)
+                        elif tasto == "Δ":
+                            st.session_state.valori_delta.append(rimuovi_percentuale(st.session_state.input))
+                            if len(st.session_state.valori_delta) == 2:
+                                st.session_state.input = calcolo_delta()
+                        elif tasto == "M":
+                            st.session_state.valori_molt.append(rimuovi_percentuale(st.session_state.input))
+                            if len(st.session_state.valori_molt) == 2:
+                                st.session_state.input = calcolo_molt()
+                        elif tasto == "P":
+                            st.session_state.valori_p.append(rimuovi_percentuale(st.session_state.input))
+                            if len(st.session_state.valori_p) == 2:
+                                st.session_state.input = calcolo_p()
+                        elif tasto == "x²":
+                            st.session_state.input = str(float(st.session_state.input)**2)
+                        elif tasto == "√":
+                            st.session_state.input = str(math.sqrt(float(st.session_state.input)))
+                        elif tasto == "+/-":
+                            if st.session_state.input.startswith("-"):
+                                st.session_state.input = st.session_state.input[1:]
+                            else:
+                                st.session_state.input = "-" + st.session_state.input
+                        else:
+                            st.session_state.input += tasto
 
-# Calcoli principali
-cols = st.columns(3)
-if cols[0].button("Calcola"):
-    risultato = eval_expr(expr)
-    st.session_state.cronologia.insert(0, f"{expr} = {risultato}")
-    st.success(f"Risultato: {risultato}")
+def mostra_risultato():
+    if st.session_state.input:
+        st.subheader(f"Risultato: {st.session_state.input}")
 
-if cols[1].button("Δ Delta"):
-    try:
-        st.session_state.valori_delta.append(rimuovi_percentuale(expr))
-        if len(st.session_state.valori_delta) == 2:
-            res = esegui_delta()
-            st.success(f"Δ: {res}")
-            st.session_state.cronologia.insert(0, f"Δ: {res}")
-            st.session_state.valori_delta.clear()
-    except:
-        st.error("Errore nei valori")
+def mostra_cronologia():
+    if st.session_state.cronologia:
+        st.subheader("Cronologia:")
+        for entry in st.session_state.cronologia:
+            st.write(entry)
 
-if cols[2].button("M Moltiplicatore"):
-    try:
-        st.session_state.valori_molt.append(rimuovi_percentuale(expr))
-        if len(st.session_state.valori_molt) == 2:
-            res = esegui_molt()
-            st.success(f"M: {res}")
-            st.session_state.cronologia.insert(0, f"M: {res}")
-            st.session_state.valori_molt.clear()
-    except:
-        st.error("Errore nei valori")
+def app():
+    # Impostazioni iniziali
+    if 'input' not in st.session_state:
+        st.session_state.input = ""
+    if 'cronologia' not in st.session_state:
+        st.session_state.cronologia = []
+    if 'valori_delta' not in st.session_state:
+        st.session_state.valori_delta = []
+    if 'valori_molt' not in st.session_state:
+        st.session_state.valori_molt = []
+    if 'valori_p' not in st.session_state:
+        st.session_state.valori_p = []
+    if 'sconti' not in st.session_state:
+        st.session_state.sconti = []
+    
+    st.title("Calcolatrice Avanzata")
+    
+    # Mostra input corrente
+    st.text_input("Operazione in corso:", value=st.session_state.input, key="input", disabled=True)
 
-cols2 = st.columns(3)
-if cols2[0].button("P Prezzo → Ricavo"):
-    try:
-        st.session_state.valori_p.append(rimuovi_percentuale(expr))
-        if len(st.session_state.valori_p) == 2:
-            res = esegui_p()
-            st.success(f"P: {res}")
-            st.session_state.cronologia.insert(0, f"P: {res}")
-            st.session_state.valori_p.clear()
-    except:
-        st.error("Errore nei valori")
+    # Crea pulsanti per la calcolatrice
+    crea_pulsanti()
 
-if cols2[1].button("S Somma sconti"):
-    try:
-        st.session_state.sconti.append(rimuovi_percentuale(expr))
-        if len(st.session_state.sconti) >= 2:
-            res = somma_sconti(st.session_state.sconti[-2], st.session_state.sconti[-1])
-            st.success(f"S: {res}")
-            st.session_state.cronologia.insert(0, f"S: {res}")
-            st.session_state.sconti = [float(res.replace("%", ""))]
-    except:
-        st.error("Errore nei valori")
+    # Mostra il risultato
+    mostra_risultato()
 
-if cols2[2].button("1/s Inverso"):
-    res = sconto_inverso(expr)
-    st.success(f"Inverso: {res}")
-    st.session_state.cronologia.insert(0, f"1/s: {res}")
+    # Mostra cronologia dei calcoli
+    mostra_cronologia()
 
-# Cronologia
-if st.session_state.cronologia:
-    st.markdown("### 📜 Cronologia")
-    for riga in st.session_state.cronologia:
-        st.write("•", riga)
+if __name__ == "__main__":
+    app()
