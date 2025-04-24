@@ -2,128 +2,121 @@ import streamlit as st
 import math
 
 st.set_page_config(page_title="Calcolatrice", layout="centered")
-
-# ora il resto del codice...
-
-st.set_page_config(page_title="Calcolatrice", layout="centered")
 st.title("🧮 Calcolatrice Avanzata")
 
-# Inizializza variabili di stato
-for var in ["valori_delta", "valori_molt", "valori_p", "sconti", "cronologia"]:
-    if var not in st.session_state:
-        st.session_state[var] = []
+# Inizializzazione stati
+for k in ["cronologia", "valori_delta", "valori_molt", "valori_p", "sconti"]:
+    if k not in st.session_state:
+        st.session_state[k] = []
 
-# Funzioni ausiliarie
-def rimuovi_percentuale(val):
-    if isinstance(val, str) and "%" in val:
-        return float(val.replace("%", "")) / 100
-    return float(val)
+def rimuovi_percentuale(v):
+    if isinstance(v, str) and "%" in v:
+        return float(v.replace("%", "")) / 100
+    return float(v)
+
+def eval_expr(expr):
+    try:
+        return eval(expr)
+    except:
+        return "Errore"
 
 def esegui_delta():
+    v = st.session_state.valori_delta
     try:
-        v1, v2 = st.session_state.valori_delta
-        return f"{((v2 - v1) / v1 * 100):.3f}%"
+        return f"{((v[1] - v[0]) / v[0] * 100):.3f}%"
     except:
         return "Errore"
 
 def esegui_molt():
+    v = st.session_state.valori_molt
     try:
-        v1, v2 = st.session_state.valori_molt
-        return f"{((v2 * 2) / v1):.2f}"
+        return f"{((v[1] * 2) / v[0]):.2f}"
     except:
         return "Errore"
 
 def esegui_p():
+    v = st.session_state.valori_p
     try:
-        v1, v2 = st.session_state.valori_p
-        res = v1 - ((100 - v1) / (100 / v2))
-        return f"{res:.3f}%"
+        r = v[0] - ((100 - v[0]) / (100 / v[1]))
+        return f"{r:.3f}%"
     except:
         return "Errore"
 
 def sconto_inverso(v):
     try:
         v = float(v)
-        return str(round(100 * (1 - 1 / (1 - (v / 100))), 3))
+        return f"{round(100 * (1 - 1 / (1 - (v / 100))), 3)}"
     except:
         return "Errore"
 
 def somma_sconti(s1, s2):
     try:
-        composito = (((s1 / 100) + (s2 / 100)) - (s1 / 100 * s2 / 100)) * 100
-        return f"{composito:.3f}%"
+        return f"{(((s1/100)+(s2/100))-(s1/100*s2/100))*100:.3f}%"
     except:
         return "Errore"
 
-# Input dell'utente
-espr = st.text_input("📥 Inserisci numero o espressione:", "")
+# Input principale
+expr = st.text_input("Inserisci numero o espressione:", "")
 
-# Pulsanti operativi
-col1, col2, col3 = st.columns(3)
+# Calcoli principali
+cols = st.columns(3)
+if cols[0].button("Calcola"):
+    risultato = eval_expr(expr)
+    st.session_state.cronologia.insert(0, f"{expr} = {risultato}")
+    st.success(f"Risultato: {risultato}")
 
-if col1.button("🧮 Calcola"):
+if cols[1].button("Δ Delta"):
     try:
-        risultato = eval(espr)
-        st.success(f"Risultato: {risultato}")
-        st.session_state.cronologia.insert(0, f"{espr} = {risultato}")
-    except:
-        st.error("Errore di sintassi")
-
-if col2.button("Δ Delta"):
-    try:
-        st.session_state.valori_delta.append(rimuovi_percentuale(espr))
+        st.session_state.valori_delta.append(rimuovi_percentuale(expr))
         if len(st.session_state.valori_delta) == 2:
             res = esegui_delta()
             st.success(f"Δ: {res}")
             st.session_state.cronologia.insert(0, f"Δ: {res}")
-            st.session_state.valori_delta = []
+            st.session_state.valori_delta.clear()
     except:
-        st.error("Errore nei dati")
+        st.error("Errore nei valori")
 
-if col3.button("M Moltiplicatore"):
+if cols[2].button("M Moltiplicatore"):
     try:
-        st.session_state.valori_molt.append(rimuovi_percentuale(espr))
+        st.session_state.valori_molt.append(rimuovi_percentuale(expr))
         if len(st.session_state.valori_molt) == 2:
             res = esegui_molt()
             st.success(f"M: {res}")
             st.session_state.cronologia.insert(0, f"M: {res}")
-            st.session_state.valori_molt = []
+            st.session_state.valori_molt.clear()
     except:
-        st.error("Errore nei dati")
+        st.error("Errore nei valori")
 
-col4, col5, col6 = st.columns(3)
-
-if col4.button("P Prezzo da sconto"):
+cols2 = st.columns(3)
+if cols2[0].button("P Prezzo → Ricavo"):
     try:
-        st.session_state.valori_p.append(rimuovi_percentuale(espr))
+        st.session_state.valori_p.append(rimuovi_percentuale(expr))
         if len(st.session_state.valori_p) == 2:
             res = esegui_p()
             st.success(f"P: {res}")
             st.session_state.cronologia.insert(0, f"P: {res}")
-            st.session_state.valori_p = []
+            st.session_state.valori_p.clear()
     except:
-        st.error("Errore nei dati")
+        st.error("Errore nei valori")
 
-if col5.button("S Somma sconti"):
+if cols2[1].button("S Somma sconti"):
     try:
-        s = rimuovi_percentuale(espr)
-        st.session_state.sconti.append(s)
+        st.session_state.sconti.append(rimuovi_percentuale(expr))
         if len(st.session_state.sconti) >= 2:
             res = somma_sconti(st.session_state.sconti[-2], st.session_state.sconti[-1])
             st.success(f"S: {res}")
             st.session_state.cronologia.insert(0, f"S: {res}")
             st.session_state.sconti = [float(res.replace("%", ""))]
     except:
-        st.error("Errore nei dati")
+        st.error("Errore nei valori")
 
-if col6.button("1/s Inverso"):
-    res = sconto_inverso(espr)
+if cols2[2].button("1/s Inverso"):
+    res = sconto_inverso(expr)
     st.success(f"Inverso: {res}")
     st.session_state.cronologia.insert(0, f"1/s: {res}")
 
 # Cronologia
 if st.session_state.cronologia:
     st.markdown("### 📜 Cronologia")
-    for voce in st.session_state.cronologia:
-        st.write("•", voce)
-
+    for riga in st.session_state.cronologia:
+        st.write("•", riga)
