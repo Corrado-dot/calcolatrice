@@ -1,6 +1,9 @@
 import streamlit as st
-st.set_page_config(page_title="Calcolatrice", layout="centered")
 import math
+
+st.set_page_config(page_title="Calcolatrice", layout="centered")
+
+# ora il resto del codice...
 
 st.set_page_config(page_title="Calcolatrice", layout="centered")
 st.title("🧮 Calcolatrice Avanzata")
