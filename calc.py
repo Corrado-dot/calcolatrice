@@ -1,3 +1,4 @@
+st.set_page_config(page_title="Calcolatrice", layout="centered")
 import streamlit as st
 import math
 
